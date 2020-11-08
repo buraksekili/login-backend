@@ -24,4 +24,34 @@ const addProduct = async (userId, productId) => {
   }
 };
 
-module.exports = { addProduct };
+const getBasket = async (userId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = `SELECT * FROM basket WHERE user_id = ?`;
+
+    const [rows] = await connection.execute(SQL, [userId]);
+    if (!rows) {
+      console.log("rows: ", rows);
+      return [
+        `A basket identified with user:${userId} couldn't found,`,
+        undefined,
+      ];
+    }
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const deleteProductFromBasket = async (userId, productId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = "DELETE FROM basket WHERE user_id=? and product_id = ? LIMIT 1";
+    const [rows] = await connection.execute(SQL, [userId, productId]);
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+module.exports = { addProduct, getBasket, deleteProductFromBasket };
