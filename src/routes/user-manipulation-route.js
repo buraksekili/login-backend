@@ -1,6 +1,6 @@
 const express = require("express");
 const manipRouter = express.Router();
-const { passwordChange } = require("../db");
+const { passwordChange, getUserIdFromMail } = require("../db");
 
 manipRouter.post("/user/:id/change", async (req, res) => {
   if (req.body && req.body[0]) {
@@ -19,6 +19,19 @@ manipRouter.post("/user/:id/change", async (req, res) => {
         message: `The password of the user with id ${req.params.id} changed`,
       });
     }
+  }
+  return res.status(400).json({ error: "Invalid request body." });
+});
+
+manipRouter.get("/user/mail", async (req, res) => {
+  if (req.body && req.body[0]) {
+    const userMail = req.body[0].user_mail;
+    const [error, response] = await getUserIdFromMail(userMail);
+    if (error) {
+      return res.status(400).json({ status: false, error });
+    }
+    console.log("response", response);
+    return res.json({ status: true, user_mail: userMail, user_id: response });
   }
   return res.status(400).json({ error: "Invalid request body." });
 });

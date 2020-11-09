@@ -32,10 +32,24 @@ const deleteUser = async (mail) => {
   const SQL = "DELETE FROM user WHERE user_email = ?";
   try {
     await connection.execute(SQL, [mail]);
-    return { error: false };
+    return [undefined];
   } catch (error) {
-    return { error: true };
+    return [true];
   }
 };
 
-module.exports = { passwordChange, deleteUser };
+const getUserIdFromMail = async (mail) => {
+  const connection = await mysql.createConnection(connectionConfig);
+  const SQL = "SELECT * FROM user WHERE user_email = ?";
+  try {
+    const [rows] = await connection.execute(SQL, [mail]);
+    if (rows && rows.length > 0) {
+      return [undefined, rows[0].user_id];
+    }
+    return [`User ${mail} couldn't found.`, undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+module.exports = { passwordChange, deleteUser, getUserIdFromMail };
