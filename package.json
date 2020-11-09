@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "env-cmd -f ./.env jest --detectOpenHandles ",
+    "test": "env-cmd -f ./.env jest --verbose=false --forceExit",
     "dev": "nodemon ./src/index.js"
   },
   "jest": {
@@ -18,5 +18,10 @@
     "express": "^4.17.1",
     "mysql2": "^2.2.5"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "axios": "^0.21.0",
+    "env-cmd": "^10.1.0",
+    "jest": "^26.6.3",
+    "supertest": "^6.0.1"
+  }
 }
