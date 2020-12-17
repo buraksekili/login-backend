@@ -1,6 +1,5 @@
 const mysql = require("mysql2/promise");
 const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
-const fs = require("fs");
 
 // Set the connection config object
 const connectionConfig = {
@@ -71,36 +70,4 @@ const signup = async (mail, password, phone, title) => {
   }
 };
 
-const insertImage = async () => {
-  try {
-    const connection = await mysql.createConnection(connectionConfig);
-
-    var onlyPath = require("path").dirname(
-      "C:\\Users\\ASUS\\Downloads\\logo.png"
-    );
-
-    console.log(`path is ${onlyPath + "\\logo.png"}`);
-
-    let SQL = `INSERT INTO Categories (CategoryName, CategoryImage, Active_Passive)  VALUES ('Beverages' LOAD_FILE('?') ,1)`;
-    var query = "INSERT INTO `Categories` SET ?",
-      values = {
-        file_type: "img",
-        file_size: buffer.length,
-        file: buffer,
-      };
-    let [rows] = await connection.execute(SQL, [onlyPath]);
-
-    if (!rows) {
-      return ["The result is empty. Try again", undefined];
-    }
-    if (rows.length != 0) {
-      return [`already exists.`, undefined];
-    }
-
-    return [undefined, rows];
-  } catch (error) {
-    return [error.message, undefined];
-  }
-};
-
-module.exports = { login, signup, insertImage };
+module.exports = { login, signup };

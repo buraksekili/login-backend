@@ -1,5 +1,5 @@
 const express = require("express");
-const { login, signup, insertImage } = require("../db");
+const { login, signup } = require("../db");
 
 const connectionRouter = express.Router();
 
@@ -42,20 +42,6 @@ connectionRouter.post("/signup", async (req, res) => {
     }
   }
   // invalid json body.
-  return res.status(401).json({ error: "Invalid request body." });
-});
-
-connectionRouter.get("/insertsm", async (req, res) => {
-  const [error, response] = await insertImage();
-
-  if (error) {
-    return res.status(400).json({ error, status: false });
-  }
-
-  if (response && response.affectedRows && response.affectedRows > 0) {
-    console.log(response);
-    return res.json({ message: `is created`, status: true });
-  }
   return res.status(401).json({ error: "Invalid request body." });
 });
 
