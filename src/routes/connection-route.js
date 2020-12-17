@@ -22,7 +22,7 @@ connectionRouter.post("/login", async (req, res) => {
       });
     }
   }
-  return res.status(401).json({ error: "Invalid request body." });
+  return res.status(400).json({ error: "Invalid request body." });
 });
 
 connectionRouter.post("/signup", async (req, res) => {
@@ -42,7 +42,7 @@ connectionRouter.post("/signup", async (req, res) => {
     }
   }
   // invalid json body.
-  return res.status(401).json({ error: "Invalid request body." });
+  return res.status(400).json({ error: "Invalid request body." });
 });
 
 module.exports = { connectionRouter };
