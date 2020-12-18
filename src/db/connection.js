@@ -16,8 +16,6 @@ const login = async (mail, password, title) => {
     const SQL = `SELECT * FROM loginners WHERE LoginnerMail = ? and LoginnerPassword = ?`;
     const [rows] = await connection.execute(SQL, [mail, password]);
 
-    console.log(`logging user with ${mail} - ${password} - ${title}`);
-
     if (!rows) {
       return ["The result is empty. Try again", undefined];
     }
@@ -28,7 +26,6 @@ const login = async (mail, password, title) => {
       return ["Title field is empty for /login body.", undefined];
     }
 
-    console.log("rows are", rows);
     return [undefined, rows];
   } catch (error) {
     return [error.message, undefined];
@@ -39,14 +36,9 @@ const signup = async (mail, password, phone, title) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
 
-    console.log(
-      `creating user with ${mail} - ${password} - ${phone} - ${title} `
-    );
-
     // check if the email exists or not.
     let SQL = "SELECT * FROM loginners WHERE LoginnerMail = ?";
     let [rows] = await connection.execute(SQL, [mail]);
-
     if (!rows) {
       return ["The result is empty. Try again", undefined];
     }
@@ -64,10 +56,97 @@ const signup = async (mail, password, phone, title) => {
     if (rows.length == 0) {
       return [`${mail} couldn't created.`, undefined];
     }
+
     return [undefined, rows];
   } catch (error) {
     return [error.message, undefined];
   }
 };
 
-module.exports = { login, signup };
+const addCustomer = async (
+  loginnerId,
+  contactName,
+  address,
+  creditCardNo,
+  city,
+  postalCode
+) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+
+    let SQL = "INSERT INTO CustomerLoginners VALUES(?, ?, ?, ?, ?, ?)";
+    let [rows] = await connection.execute(SQL, [
+      loginnerId,
+      contactName,
+      address,
+      creditCardNo,
+      city,
+      postalCode,
+    ]);
+
+    if (!rows) {
+      return ["The result is empty. Try again", undefined];
+    }
+
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const addEmployee = async (
+  loginnerId,
+  firstname,
+  lastname,
+  hireDate,
+  postalCode,
+  title
+) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+
+    // check if the email exists or not.
+    let SQL = "INSERT INTO employeeloginners VALUES(?, ?, ?, ?, ?, ?)";
+    let [rows] = await connection.execute(SQL, [
+      loginnerId,
+      firstname,
+      lastname,
+      hireDate,
+      postalCode,
+      title,
+    ]);
+
+    if (!rows) {
+      return ["The result is empty. Try again", undefined];
+    }
+
+    console.log("Employee inserted into employee table.");
+
+    // now, insert employees into corresponding table s.t. pm table
+    if (title == "P") {
+      SQL = "INSERT INTO ProductManagerEmployerLoginners VALUES(?)";
+      [rows] = await connection.execute(SQL, [loginnerId]);
+      if (!rows) {
+        return ["The result is empty. Try again", undefined];
+      }
+
+      console.log("Employee is PM and inserted into PM table.");
+      return [undefined, rows];
+    } else if (title == "S") {
+      SQL = "INSERT INTO SalesManagerEmployerLoginners(SMELID) VALUES(?)";
+      [rows] = await connection.execute(SQL, [loginnerId]);
+
+      if (!rows) {
+        return ["The result is empty. Try again", undefined];
+      }
+      console.log("Employee is SM and inserted into SM table.");
+      return [undefined, rows];
+    }
+
+    return ["You must be an PM or SM", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+module.exports = { login, signup, addCustomer, addEmployee };
