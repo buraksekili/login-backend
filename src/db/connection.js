@@ -1,5 +1,7 @@
 const mysql = require("mysql2/promise");
 const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
+const { hashPassword } = require("../helper");
+const bcrypt = require("bcrypt");
 
 // Set the connection config object
 const connectionConfig = {
@@ -12,9 +14,16 @@ const connectionConfig = {
 
 const login = async (mail, password, title) => {
   try {
+    if (!title || title == "" || title.length == 0) {
+      return ["Title field is empty for /login body.", undefined];
+    }
+    if (!password || password == "" || password.length == 0) {
+      return ["Password field is empty for /login body.", undefined];
+    }
+
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = `SELECT * FROM loginners WHERE LoginnerMail = ? and LoginnerPassword = ?`;
-    const [rows] = await connection.execute(SQL, [mail, password]);
+    const SQL = `SELECT LoginnerPassword FROM loginners WHERE LoginnerMail = ?`;
+    const [rows] = await connection.execute(SQL, [mail]);
 
     if (!rows) {
       return ["The result is empty. Try again", undefined];
@@ -22,11 +31,11 @@ const login = async (mail, password, title) => {
     if (rows.length == 0) {
       return [`Invalid credentials`, undefined];
     }
-    if (!title || title == "" || title.length == 0) {
-      return ["Title field is empty for /login body.", undefined];
-    }
 
-    return [undefined, rows];
+    const hashedPassword = rows[0].LoginnerPassword.toString();
+    const result = await bcrypt.compare(password, hashedPassword);
+
+    return [undefined, result];
   } catch (error) {
     return [error.message, undefined];
   }
@@ -34,6 +43,11 @@ const login = async (mail, password, title) => {
 
 const signup = async (mail, password, phone, title) => {
   try {
+    const [error, hashedPassword] = await hashPassword(password);
+    if (error) {
+      return ["Error while hashing a password", undefined];
+    }
+
     const connection = await mysql.createConnection(connectionConfig);
 
     // check if the email exists or not.
@@ -48,7 +62,12 @@ const signup = async (mail, password, phone, title) => {
 
     SQL =
       "INSERT INTO loginners(LoginnerMail, LoginnerPassword, Phone, Title) VALUES(?, ?, ?, ?)";
-    [rows] = await connection.execute(SQL, [mail, password, phone, title]);
+    [rows] = await connection.execute(SQL, [
+      mail,
+      hashedPassword,
+      phone,
+      title,
+    ]);
 
     if (!rows) {
       return ["The result is empty. Try again", undefined];
