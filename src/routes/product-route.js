@@ -2,7 +2,15 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
-const { createProduct, createCategory, getCategories } = require("../db");
+const {
+  createProduct,
+  createCategory,
+  getCategories,
+  getProducts,
+  getProductsByID,
+  getProductPrice,
+} = require("../db");
+const { getArrayFromBuffer } = require("../helper");
 
 var imagePath = "";
 const storage = multer.diskStorage({
@@ -53,6 +61,7 @@ productRouter.get("/get_cats", async (req, res) => {
   }
 
   if (response) {
+    getArrayFromBuffer(response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid request to /get_cats." });
@@ -94,5 +103,51 @@ productRouter.post(
     return res.status(400).json({ error: "Invalid request body." });
   }
 );
+
+productRouter.get("/products", async (req, res) => {
+  const [error, response] = await getProducts();
+  if (error) {
+    return res.status(401).json({ status: false, error });
+  }
+
+  if (response) {
+    getArrayFromBuffer(response);
+    return res.json(response);
+  }
+  return res.status(400).json({ error: "Invalid request to /get_cats." });
+});
+
+productRouter.get("/price/:product_id", async (req, res) => {
+  if (req.params && req.params.product_id) {
+    const productId = req.params.product_id;
+    const [error, response] = await getProductPrice(productId);
+
+    if (error) {
+      return res.status(401).json({ status: false, error });
+    }
+
+    if (response) {
+      return res.json(response);
+    }
+  }
+  return res.status(400).json({ error: "Invalid request to /get_cats." });
+});
+
+productRouter.get("/product/:id", async (req, res) => {
+  const productId = req.params.id;
+  if (!productId || productId.toString() < 0) {
+    return res.status(400).json({ error: "Invalid ID parameter." });
+  }
+  const [error, response] = await getProductsByID(productId);
+  if (error) {
+    return res.status(401).json({ status: false, error });
+  }
+
+  if (response) {
+    getArrayFromBuffer(response);
+    return res.json(response);
+  }
+  return res.status(400).json({ error: "Invalid request to /get_cats." });
+});
 
 module.exports = { productRouter };

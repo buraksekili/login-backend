@@ -10,32 +10,45 @@ const connectionConfig = {
   multipleStatements: true,
 };
 
-const addProduct = async (userId, productId) => {
+const addProductIntoBasket = async (userId, productId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = "INSERT INTO basket (user_id, product_id) VALUES(?, ?)";
+    const SQL = "INSERT INTO basket (LoginnerID, ProductID) VALUES(?, ?)";
+
     const [rows] = await connection.execute(SQL, [userId, productId]);
     if (rows && rows.affectedRows && rows.affectedRows > 0) {
       return [undefined, rows];
     }
+
     return ["Error while adding product into a basket", undefined];
   } catch (error) {
     return [error.message, undefined];
   }
 };
 
-const getBasket = async (userId) => {
+const getUserBasket = async (userId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = `SELECT * FROM basket WHERE user_id = ?`;
+    const SQL = `SELECT * FROM basket WHERE LoginnerID = ?`;
 
     const [rows] = await connection.execute(SQL, [userId]);
     if (!rows) {
-      console.log("rows: ", rows);
-      return [
-        `A basket identified with user:${userId} couldn't found,`,
-        undefined,
-      ];
+      return [`A basket for user:${userId} couldn't found,`, undefined];
+    }
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const getProductCountFromBasket = async (userId, productId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = `SELECT COUNT(*) as count FROM basket WHERE LoginnerID=? and ProductId=?`;
+
+    const [rows] = await connection.execute(SQL, [userId, productId]);
+    if (!rows) {
+      return [`A basket for user:${userId} couldn't found,`, undefined];
     }
     return [undefined, rows];
   } catch (error) {
@@ -46,7 +59,7 @@ const getBasket = async (userId) => {
 const deleteProductFromBasket = async (userId, productId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = "DELETE FROM basket WHERE user_id=? and product_id = ? LIMIT 1";
+    const SQL = "DELETE FROM basket WHERE LoginnerID=? and ProductID=? LIMIT 1";
     const [rows] = await connection.execute(SQL, [userId, productId]);
     return [undefined, rows];
   } catch (error) {
@@ -54,4 +67,9 @@ const deleteProductFromBasket = async (userId, productId) => {
   }
 };
 
-module.exports = { addProduct, getBasket, deleteProductFromBasket };
+module.exports = {
+  addProductIntoBasket,
+  getUserBasket,
+  getProductCountFromBasket,
+  deleteProductFromBasket,
+};

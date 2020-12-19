@@ -49,6 +49,54 @@ const getCategories = async () => {
   }
 };
 
+const getProducts = async () => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+
+    const SQL = "SELECT * FROM products";
+    const [rows] = await connection.execute(SQL);
+
+    if (rows) {
+      return [undefined, rows];
+    }
+    return ["Could not get categories", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const getProductsByID = async (productId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+
+    const SQL = "SELECT * FROM products WHERE ProductID=?";
+    const [rows] = await connection.execute(SQL, [productId]);
+
+    if (rows) {
+      return [undefined, rows];
+    }
+    return ["Could not get categories", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const getProductPrice = async (productId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+
+    const SQL = "SELECT UnitPrice FROM products WHERE ProductID=?";
+    const [rows] = await connection.execute(SQL, [productId]);
+
+    if (rows) {
+      return [undefined, rows];
+    }
+    return ["Could not get categories", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 const createProduct = async (
   categoryName,
   productName,
@@ -72,6 +120,7 @@ const createProduct = async (
       parseFloat(status),
     ]);
 
+    // succ
     if (rows && rows.affectedRows && rows.affectedRows > 0) {
       return [undefined, { rows, categoryID }];
     }
@@ -82,4 +131,11 @@ const createProduct = async (
   }
 };
 
-module.exports = { createProduct, getCategories, createCategory };
+module.exports = {
+  createProduct,
+  getCategories,
+  createCategory,
+  getProducts,
+  getProductPrice,
+  getProductsByID,
+};

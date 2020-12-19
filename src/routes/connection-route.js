@@ -7,22 +7,29 @@ connectionRouter.post("/login", async (req, res) => {
   if (req.body && req.body[0]) {
     const { mail, password, title } = req.body[0];
 
-    const [error, response] = await login(mail, password, title);
+    const [error, result] = await login(mail, password, title);
 
     if (error) {
       return res.status(401).json({ status: false, error });
     }
 
-    if (response && response.length > 0) {
+    if (result) {
       return res.json({
         status: true,
-        user_id: response[0].ID,
-        user_mail: response[0].LoginnerMail,
-        user_title: response[0].Title,
+        user_mail: mail,
+        user_title: title,
       });
     }
+    return res.json({
+      status: false,
+      message: "Invalid credentials",
+      user_mail: mail,
+      user_title: title,
+    });
   }
-  return res.status(400).json({ error: "Invalid request body." });
+  return res
+    .status(400)
+    .json({ status: false, error: "Invalid request body." });
 });
 
 connectionRouter.post("/signup", async (req, res) => {
