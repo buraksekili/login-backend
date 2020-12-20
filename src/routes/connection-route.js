@@ -4,9 +4,8 @@ const { login, signup, addCustomer, addEmployee } = require("../db");
 const connectionRouter = express.Router();
 
 connectionRouter.post("/login", async (req, res) => {
-  if (req.body && req.body[0]) {
-    const { mail, password, title } = req.body[0];
-
+  if (req.body) {
+    const { mail, password, title } = req.body;
     const [error, result] = await login(mail, password, title);
 
     if (error) {
@@ -34,8 +33,8 @@ connectionRouter.post("/login", async (req, res) => {
 
 connectionRouter.post("/signup", async (req, res) => {
   console.log("Signup function");
-  if (req.body && req.body[0]) {
-    const { mail, password, phone, title, contactName } = req.body[0];
+  if (req.body && req.body) {
+    const { mail, password, phone, title, contactName } = req.body;
     let userTitle = title;
     if (title == "S" || title == "P") {
       console.log("New user is an employee");
@@ -54,7 +53,7 @@ connectionRouter.post("/signup", async (req, res) => {
       // if Customer signs up
       if (userTitle == "C") {
         console.log("New user is a customer");
-        const { customerAddress, creditCardNo, city, postalCode } = req.body[0];
+        const { customerAddress, creditCardNo, city, postalCode } = req.body;
 
         // add into customerloginners
         const [err, resp] = await addCustomer(
@@ -76,7 +75,7 @@ connectionRouter.post("/signup", async (req, res) => {
         });
       }
 
-      const { firstname, lastname, hiredate, postalCode, title } = req.body[0];
+      const { firstname, lastname, hiredate, postalCode, title } = req.body;
 
       // add into employee
       const [err, resp] = await addEmployee(
