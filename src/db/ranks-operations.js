@@ -10,15 +10,33 @@ const connectionConfig = {
   multipleStatements: true,
 };
 
-const addRank = async (userId, productID, star) => {
+const addRank = async (userId, productId, star) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL =
-      "INSERT INTO Ranks(LoginnerID, ProductID, StarNumber) VALUES(?,?,?)";
+    let updated = false;
+    let SQL = `Select * From Ranks where Ranks.LoginnerId=? and Ranks.ProductID=?`;
+    let [rows] = await connection.execute(SQL, [userId, productId]);
 
-    const [rows] = await connection.execute(SQL, [userId, productID, star]);
+    if (rows) {
+      for (let el in rows) {
+        if (rows[el].ProductID == productId) {
+          updated = true;
+          break;
+        }
+      }
+    }
+
+    if (!updated) {
+      SQL =
+        "INSERT INTO Ranks(LoginnerID, ProductID, StarNumber) VALUES(?,?,?)";
+      [rows] = await connection.execute(SQL, [userId, productId, star]);
+    } else {
+      SQL = `UPDATE Ranks SET StarNumber=? WHERE LoginnerID=? and ProductID=?`;
+      [rows] = await connection.execute(SQL, [star, userId, productId])
+    }
+
     if (rows && rows.affectedRows && rows.affectedRows > 0) {
-      return [undefined, rows];
+      return [undefined, rows, updated];
     }
 
     return ["Error while adding a rank.", undefined];
@@ -31,7 +49,6 @@ const getProductRanks = async (productId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
     const SQL = `SELECT AVG(StarNumber) as Rating FROM ranks WHERE ProductID=?`;
-    // const SQL = `SELECT SUM(StarNumber) as sum, Count(*) as count FROM ranks WHERE ProductID= ?`;
 
     const [rows] = await connection.execute(SQL, [productId]);
     if (!rows) {
@@ -42,7 +59,6 @@ const getProductRanks = async (productId) => {
     return [error.message, undefined];
   }
 };
-
 
 module.exports = {
   getProductRanks,

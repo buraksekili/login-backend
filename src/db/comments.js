@@ -32,18 +32,18 @@ const addComment = async (userId, productId, comment) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
 
+    let updated = false;
     let controlSQL = `SELECT * FROM comments where comments.LoginnerID=?`;
     const [controlRow] = await connection.execute(controlSQL, [userId]);
 
     let SQL;
     let rows;
-    let updated = false;
 
     if (controlRow) {
       for (let el in controlRow) {
         if (controlRow[el].ProductID == productId) {
           updated = true;
-          console.log("updated");
+          break;
         }
       }
     }

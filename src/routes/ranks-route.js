@@ -60,22 +60,19 @@ ranksRoute.get("/count/:order_id/:product_id", async (req, res) => {
 });
 
 ranksRoute.post("/rank", async (req, res) => {
-  console.log('bod', req.body)
+  console.log("bod", req.body);
   if (req.body && req.body) {
     const userId = req.body.userId;
     const productId = req.body.productId;
     const rating = req.body.rating;
-    const [error, response] = await addRank(userId, productId, rating);
+    const [error, response, updated] = await addRank(userId, productId, rating);
 
     if (error) {
       return res.status(400).json({ error, status: false });
     }
 
     if (response && response.affectedRows > 0) {
-      return res.json({
-        status: true,
-        ranks_line_id: response.insertId,
-      });
+      return res.json({ status: true, updated });
     }
   }
   return res.status(401).json({ error: "Invalid request body." });

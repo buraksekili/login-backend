@@ -75,6 +75,8 @@ const getProducts = async (categoryId) => {
     }
 
     if (rows) {
+      const test = await getProductRate(4);
+      console.log("test is", test);
       const promiseResult = rows.map(async (product) => ({
         ...product,
         rank: await getProductRate(product.ProductID),

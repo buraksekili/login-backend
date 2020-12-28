@@ -151,7 +151,6 @@ productRouter.post(
 );
 
 productRouter.get("/products", async (req, res) => {
-  console.log("queries", req.query);
   let categoryId = -1;
   if (req.query && req.query.categoryId) {
     categoryId = req.query.categoryId;
@@ -204,7 +203,7 @@ productRouter.get("/product/:id", async (req, res) => {
 });
 
 productRouter.delete("/product", async (req, res) => {
-  console.log('router')
+  console.log("router");
   const productId = req.body.id;
   if (!productId) {
     return res.status(400).json({ error: "Invalid ID parameter." });

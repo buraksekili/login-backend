@@ -40,6 +40,7 @@ commentsRouter.get("/comments/:productId", async (req, res) => {
       console.log("comment: ", response);
       return res.json(response);
     }
+    return res.json(response);
   }
   return res.status(400).json({ error: "Invalid request body." });
 });
