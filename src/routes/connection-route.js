@@ -1,29 +1,51 @@
 const express = require("express");
-const { login, signup, addCustomer, addEmployee } = require("../db");
+const {
+  login,
+  signup,
+  addCustomer,
+  addEmployee,
+  getUserById,
+} = require("../db");
 
 const connectionRouter = express.Router();
 
-connectionRouter.post("/login", async (req, res) => {
-  if (req.body) {
-    const { mail, password, title } = req.body;
-    const [error, result] = await login(mail, password, title);
+connectionRouter.get("/getUser/:userId", async (req, res) => {
+  if (req.params && req.params.userId) {
+    const userId = req.params.userId;
+    const [error, result] = await getUserById(userId);
 
     if (error) {
       return res.status(401).json({ status: false, error });
     }
+    if (result) {
+      return res.json({ status: true, result });
+    }
+  }
+  return res.status(400).json({ error: "Invalid request params" });
+});
 
+connectionRouter.post("/login", async (req, res) => {
+  if (req.body) {
+    const { mail, password } = req.body;
+    const [error, result] = await login(mail, password);
+
+    if (error) {
+      return res.status(401).json({ status: false, error });
+    }
     if (result) {
       return res.json({
         status: true,
         user_mail: mail,
-        user_title: title,
+        userId: result.ID,
+        title: result.title,
       });
     }
     return res.json({
       status: false,
       message: "Invalid credentials",
+      userId: result.userId,
       user_mail: mail,
-      user_title: title,
+      title: result.title,
     });
   }
   return res
@@ -32,20 +54,34 @@ connectionRouter.post("/login", async (req, res) => {
 });
 
 connectionRouter.post("/signup", async (req, res) => {
-  console.log("Signup function");
   if (req.body && req.body) {
     const { mail, password, phone, title, contactName } = req.body;
+    if (
+      mail.trim() === "" ||
+      password.trim() === "" ||
+      phone.trim() === "" ||
+      title.trim() === ""
+    ) {
+      return res
+        .status(401)
+        .json({ error: "Invalid credentials", status: false });
+    }
     let userTitle = title;
+    if (title == "Customer") {
+      userTitle = "C";
+    }
     if (title == "S" || title == "P") {
       console.log("New user is an employee");
       userTitle = "E";
     }
     // add into loginners
+    console.log("signup", { mail, password, phone, userTitle });
     const [error, response] = await signup(mail, password, phone, userTitle);
 
     if (error) {
       return res.status(400).json({ error, status: false });
     }
+    console.log("error");
 
     console.log("Succesfully inserted into loginners table");
     if (response && response.affectedRows && response.affectedRows > 0) {

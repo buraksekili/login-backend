@@ -28,7 +28,9 @@ app.use("/", basketRouter);
 app.use("/", ranksRoute);
 app.use("/", commentsRouter);
 app.use("/", productRouter);
+app.use("/", manipRouter);
 app.use(express.static("uploads"));
+app.use(express.static("adsimages"));
 
 const port = process.env.PORT || 5000;
 module.exports = app.listen(port, () =>

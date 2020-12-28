@@ -30,7 +30,8 @@ const addRank = async (userId, productID, star) => {
 const getProductRanks = async (productId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = `SELECT SUM(StarNumber) as sum, Count(*) as count FROM ranks WHERE ProductID= ?`;
+    const SQL = `SELECT AVG(StarNumber) as Rating FROM ranks WHERE ProductID=?`;
+    // const SQL = `SELECT SUM(StarNumber) as sum, Count(*) as count FROM ranks WHERE ProductID= ?`;
 
     const [rows] = await connection.execute(SQL, [productId]);
     if (!rows) {
@@ -41,6 +42,7 @@ const getProductRanks = async (productId) => {
     return [error.message, undefined];
   }
 };
+
 
 module.exports = {
   getProductRanks,

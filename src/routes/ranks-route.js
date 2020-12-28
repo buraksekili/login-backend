@@ -13,12 +13,8 @@ ranksRoute.get("/ranks/:product_id", async (req, res) => {
     }
 
     if (response) {
-      const sum = response[0].sum;
-      const count = response[0].count;
-      if (!sum || count == 0) {
-        return res.json({ status: false, star_sum: sum, star_count: count });
-      }
-      return res.json({ status: true, star_sum: sum, star_count: count });
+      const rating = response[0].Rating;
+      return res.json({ status: true, rating });
     }
     return res.status(400).json({ error: "Invalid request to GET /orders." });
   }
@@ -64,11 +60,12 @@ ranksRoute.get("/count/:order_id/:product_id", async (req, res) => {
 });
 
 ranksRoute.post("/rank", async (req, res) => {
-  if (req.body && req.body[0]) {
-    const userId = req.body[0].user_id;
-    const productId = req.body[0].product_id;
-    const star = req.body[0].star;
-    const [error, response] = await addRank(userId, productId, star);
+  console.log('bod', req.body)
+  if (req.body && req.body) {
+    const userId = req.body.userId;
+    const productId = req.body.productId;
+    const rating = req.body.rating;
+    const [error, response] = await addRank(userId, productId, rating);
 
     if (error) {
       return res.status(400).json({ error, status: false });

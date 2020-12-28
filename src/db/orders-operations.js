@@ -43,6 +43,22 @@ const createOrderDetails = async (orderId, productId) => {
   }
 };
 
+const getAllOrderDetails = async (userId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = `SELECT * FROM orderdetails o, orders o1, products p WHERE o.OrderID=o1.OrderID and LoginnerId=? and p.ProductID=o.ProductID 
+    ;`;
+
+    const [rows] = await connection.execute(SQL, [userId]);
+    if (!rows) {
+      return [`A basket for user:${userId} couldn't found,`, undefined];
+    }
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 const getOrders = async (userId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
@@ -62,14 +78,13 @@ const getOrders = async (userId) => {
 const getOrderDetails = async (orderId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = `SELECT COUNT(*) as count FROM products WHERE ProductID=?`;
-    const [rows] = await connection.execute(SQL, [userId]);
+    const SQL = `SELECT * FROM orderdetails o, products p WHERE o.OrderID=? and o.ProductID=p.ProductID`;
+    const [rows] = await connection.execute(SQL, [orderId]);
 
-    console.log("rows: ", rows);
-
-    if (!rows) {
-      return [``, undefined];
+    if (!rows || rows.length == 0) {
+      return ["empty result", undefined];
     }
+    return [undefined, rows];
   } catch (error) {
     return [error.message, undefined];
   }
@@ -81,7 +96,6 @@ const productCountsFromOrder = async (productId, orderId) => {
     const SQL = `SELECT COUNT(*) as c FROM orderdetails WHERE OrderID=? and ProductID=?;`;
     const [rows] = await connection.execute(SQL, [orderId, productId]);
 
-
     if (!rows) {
       return [`Couldn't get the count of product:${productId}`, undefined];
     }
@@ -91,31 +105,18 @@ const productCountsFromOrder = async (productId, orderId) => {
   }
 };
 
-const deleteOrder = async (userId, orderId) => {
+const deleteOrder = async (orderId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    let SQL = "SELECT LoginnerMail, Title FROM Loginners WHERE ID=? LIMIT 1";
-    let [rows] = await connection.execute(SQL, [userId]);
+    const SQL = "DELETE FROM orders where OrderID=?;";
+    console.log(`${orderId} will be deleted`);
+    const [rows] = await connection.execute(SQL, [orderId]);
 
-    const userTitle = rows[0].Title;
-    if (userTitle != "E") {
-      return ["You must be a PM to delete order", undefined];
-    }
-
-    let tmpSQL = "SELECT Title FROM employeeloginners WHERE LoginnerID=?";
-    let [empRows] = await connection.execute(tmpSQL, [userId]);
-
-    const employeeTitle = empRows[0].Title;
-    if (employeeTitle != "S") {
-      return ["You must be a SM to delete order", undefined];
-    }
-
-    // now delete order
-    SQL = "DELETE FROM orders WHERE OrderID=?";
-    [rows] = await connection.execute(SQL, [orderId]);
+    console.log("before rows", rows);
     if (rows.affectedRows == 0) {
       return ["Order couldn't deleted!", undefined];
     }
+    console.log("after rows");
     return [undefined, rows];
   } catch (error) {
     return [error.message, undefined];
@@ -128,4 +129,6 @@ module.exports = {
   getOrders,
   deleteOrder,
   productCountsFromOrder,
+  getOrderDetails,
+  getAllOrderDetails,
 };

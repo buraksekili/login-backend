@@ -26,6 +26,21 @@ const addProductIntoBasket = async (userId, productId) => {
   }
 };
 
+const getUserBasketDetails = async (userId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = `SElECT * FROM basket b, products p WHERE p.ProductID = b.ProductID and b.LoginnerID = ?`;
+
+    const [rows] = await connection.execute(SQL, [userId]);
+    if (!rows) {
+      return [`A basket for user:${userId} couldn't found,`, undefined];
+    }
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 const getUserBasket = async (userId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
@@ -67,9 +82,22 @@ const deleteProductFromBasket = async (userId, productId) => {
   }
 };
 
+const clearBasket = async (userId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = "DELETE FROM basket WHERE LoginnerID=?";
+    const [rows] = await connection.execute(SQL, [userId]);
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 module.exports = {
   addProductIntoBasket,
   getUserBasket,
   getProductCountFromBasket,
   deleteProductFromBasket,
+  getUserBasketDetails,
+  clearBasket,
 };

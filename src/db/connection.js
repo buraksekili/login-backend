@@ -12,18 +12,34 @@ const connectionConfig = {
   multipleStatements: true,
 };
 
-const login = async (mail, password, title) => {
+const getUserById = async (userId) => {
   try {
-    if (!title || title == "" || title.length == 0) {
-      return ["Title field is empty for /login body.", undefined];
+    const connection = await mysql.createConnection(connectionConfig);
+    let SQL = `SELECT * FROM loginners WHERE LoginnerID=?`;
+    let [rows] = await connection.execute(SQL, [userId]);
+
+    if (!rows) {
+      return ["The result is empty. Try again", undefined];
     }
+    if (rows.length == 0) {
+      return [`Invalid credentials`, undefined];
+    }
+
+    return [undefined, rows];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const login = async (mail, password) => {
+  try {
     if (!password || password == "" || password.length == 0) {
       return ["Password field is empty for /login body.", undefined];
     }
 
     const connection = await mysql.createConnection(connectionConfig);
-    const SQL = `SELECT LoginnerPassword FROM loginners WHERE LoginnerMail = ?`;
-    const [rows] = await connection.execute(SQL, [mail]);
+    let SQL = `SELECT * FROM loginners WHERE LoginnerMail = ?`;
+    let [rows] = await connection.execute(SQL, [mail]);
 
     if (!rows) {
       return ["The result is empty. Try again", undefined];
@@ -34,8 +50,21 @@ const login = async (mail, password, title) => {
 
     const hashedPassword = rows[0].LoginnerPassword.toString();
     const result = await bcrypt.compare(password, hashedPassword);
+    if (!result) {
+      return ["Unauthorized! Wrong credential", undefined];
+    }
 
-    return [undefined, result];
+    let { ID, LoginnerMail, Title } = rows[0];
+    if (Title == "E") {
+      SQL = `SELECT * FROM productmanageremployerloginners WHERE PMELID = ?`;
+      [rows] = await connection.execute(SQL, [ID]);
+      if (rows && rows.length > 0) {
+        Title = "P";
+      } else {
+        Title = "S";
+      }
+    }
+    return [undefined, { status: result, title: Title, ID }];
   } catch (error) {
     return [error.message, undefined];
   }
@@ -168,4 +197,4 @@ const addEmployee = async (
   }
 };
 
-module.exports = { login, signup, addCustomer, addEmployee };
+module.exports = { getUserById, login, signup, addCustomer, addEmployee };

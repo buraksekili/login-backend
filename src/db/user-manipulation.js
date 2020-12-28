@@ -1,5 +1,6 @@
 const mysql = require("mysql2/promise");
 const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
+const { hashPassword } = require("../helper");
 
 // Set the connection config object
 const connectionConfig = {
@@ -10,11 +11,43 @@ const connectionConfig = {
   multipleStatements: true,
 };
 
+const getAllUsers = async () => {
+  const connection = await mysql.createConnection(connectionConfig);
+  const SQL = "SELECT ID, LoginnerMail, Title FROM loginners";
+  try {
+    const [rows] = await connection.execute(SQL, []);
+    if (rows) {
+      return [undefined, rows];
+    }
+    return ["couldn't get all users", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const updateProfile = async (userId, newPassword) => {
+  const connection = await mysql.createConnection(connectionConfig);
+  const [error, hashedPassword] = await hashPassword(newPassword);
+  if (error) {
+    return ["Error while hashing a password", undefined];
+  }
+
+  const SQL = "UPDATE loginners SET LoginnerPassword = ? WHERE ID = ?";
+  try {
+    const [rows] = await connection.execute(SQL, [hashedPassword, userId]);
+    if (rows && rows.affectedRows > 0) {
+      return [undefined, rows];
+    }
+    return ["db query has returned empty", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 const passwordChange = async (userId, newPassword) => {
   const connection = await mysql.createConnection(connectionConfig);
-  console.log(`${userId} ${newPassword}`);
 
-  const SQL = "UPDATE user SET user_password = ? WHERE user_id = ?";
+  const SQL = "UPDATE loginners SET LoginnerPassword = ? WHERE user_id = ?";
   try {
     const [rows] = await connection.execute(SQL, [newPassword, userId]);
     if (rows && rows.affectedRows > 0) {
@@ -52,4 +85,10 @@ const getUserIdFromMail = async (mail) => {
   }
 };
 
-module.exports = { passwordChange, deleteUser, getUserIdFromMail };
+module.exports = {
+  passwordChange,
+  deleteUser,
+  getUserIdFromMail,
+  updateProfile,
+  getAllUsers,
+};

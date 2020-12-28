@@ -5,6 +5,8 @@ const {
   deleteProductFromBasket,
   getProductCountFromBasket,
   getProductPrice,
+  getUserBasketDetails,
+  clearBasket,
 } = require("../db");
 
 const basketRouter = express.Router();
@@ -17,6 +19,21 @@ basketRouter.get("/basket/:user_id", async (req, res) => {
     if (error) {
       return res.status(400).json({ error, status: false });
     }
+    console.log("basket", response);
+    return res.json(response);
+  }
+  return res.status(400).json({ error: "Invalid URL query parameter." });
+});
+
+basketRouter.get("/basket_details/:user_id", async (req, res) => {
+  if (req.params && req.params.user_id) {
+    const userId = req.params.user_id;
+
+    const [error, response] = await getUserBasketDetails(userId);
+    if (error) {
+      return res.status(400).json({ error, status: false });
+    }
+    console.log("basket_details", response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid URL query parameter." });
@@ -52,10 +69,26 @@ basketRouter.get("/basket/count/:product_id", async (req, res) => {
   return res.status(400).json({ error: "Invalid query parameter or body." });
 });
 
+basketRouter.post("/clear_basket/:user_id", async (req, res) => {
+  if (req.params && req.params.user_id) {
+    const userId = req.params.user_id;
+    const [error] = await clearBasket(userId);
+
+    if (error) {
+      return res.status(400).json({ error, status: false });
+    }
+
+    return res.json({
+      status: true,
+      user_id: userId,
+    });
+  }
+  return res.status(400).json({ error: "Invalid request body." });
+});
 basketRouter.post("/add/:product_id", async (req, res) => {
-  if (req.body && req.body[0]) {
+  if (req.body && req.body) {
     const productId = req.params.product_id;
-    const userId = req.body[0].user_id;
+    const userId = req.body.user_id;
     const [error] = await addProductIntoBasket(userId, productId);
 
     if (error) {
@@ -73,9 +106,11 @@ basketRouter.post("/add/:product_id", async (req, res) => {
 });
 
 basketRouter.delete("/product/:product_id", async (req, res) => {
-  if (req.params && req.params.product_id && req.body && req.body[0]) {
-    const userId = req.body[0].user_id;
+  console.log("req body", req.body);
+  if (req.params && req.params.product_id && req.body && req.body.user_id) {
+    const userId = req.body.user_id;
     const productId = req.params.product_id;
+    console.log(`user ${userId} productId ${productId}`);
 
     const [error, response] = await deleteProductFromBasket(userId, productId);
     if (error) {

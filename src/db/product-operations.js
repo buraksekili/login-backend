@@ -1,5 +1,6 @@
 const mysql = require("mysql2/promise");
 const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
+const { getProductRanks } = require("./ranks-operations");
 
 // Set the connection config object
 const connectionConfig = {
@@ -49,15 +50,37 @@ const getCategories = async () => {
   }
 };
 
-const getProducts = async () => {
+const getProductRate = async (productId) => {
+  const [error, response] = await getProductRanks(productId);
+  if (error) {
+    return 0;
+  }
+  if (response[0].Rating) {
+    return parseFloat(response[0].Rating);
+  }
+  return 0;
+};
+
+const getProducts = async (categoryId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-
-    const SQL = "SELECT * FROM products";
-    const [rows] = await connection.execute(SQL);
+    let SQL;
+    let rows;
+    if (categoryId >= 0) {
+      SQL = "SELECT * FROM products p WHERE p.CategoryID=? ";
+      [rows] = await connection.execute(SQL, [categoryId]);
+    } else {
+      const SQL = "SELECT * FROM products";
+      [rows] = await connection.execute(SQL);
+    }
 
     if (rows) {
-      return [undefined, rows];
+      const promiseResult = rows.map(async (product) => ({
+        ...product,
+        rank: await getProductRate(product.ProductID),
+      }));
+      const resultArray = await Promise.all(promiseResult);
+      return [undefined, resultArray];
     }
     return ["Could not get categories", undefined];
   } catch (error) {
@@ -81,6 +104,38 @@ const getProductsByID = async (productId) => {
   }
 };
 
+const updateProductDetail = async (
+  productId,
+  productName,
+  imagePath,
+  categoryId,
+  unitPrice,
+  status
+) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    let SQL;
+
+    SQL = `UPDATE products 
+    SET ProductName=?, CategoryID=?, UnitPrice=?, ProductImage=?, Active_Passive=? 
+    WHERE ProductID=?`;
+    const [rows] = await connection.execute(SQL, [
+      productName,
+      categoryId,
+      unitPrice,
+      imagePath,
+      status,
+      productId,
+    ]);
+
+    if (rows) {
+      return [undefined, rows];
+    }
+    return ["Could not updated", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
 const getProductPrice = async (productId) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
@@ -98,7 +153,7 @@ const getProductPrice = async (productId) => {
 };
 
 const createProduct = async (
-  categoryName,
+  categoryId,
   productName,
   unitPrice,
   productImage,
@@ -106,15 +161,15 @@ const createProduct = async (
 ) => {
   try {
     const connection = await mysql.createConnection(connectionConfig);
-    var SQL = "SELECT C.CategoryID FROM categories C WHERE C.CategoryName = ?";
-    const [rowsId] = await connection.execute(SQL, [categoryName]);
-    const categoryID = rowsId[0].CategoryID;
+    var SQL = "SELECT C.CategoryName FROM categories C WHERE C.CategoryID  = ?";
+    const [rowsId] = await connection.execute(SQL, [categoryId]);
+    const categoryName = rowsId[0].CategoryName;
+    console.log("categoru ", categoryName);
     SQL =
       "INSERT INTO Products(ProductName, CategoryID, UnitPrice, ProductImage, Active_Passive) VALUES (?, ?, ?, ?, ?)";
-    console.log(`status ${status}`);
     const [rows] = await connection.execute(SQL, [
       productName,
-      categoryID,
+      categoryId,
       unitPrice,
       productImage,
       parseFloat(status),
@@ -122,7 +177,25 @@ const createProduct = async (
 
     // succ
     if (rows && rows.affectedRows && rows.affectedRows > 0) {
-      return [undefined, { rows, categoryID }];
+      return [undefined, { rows, categoryName }];
+    }
+
+    return ["Error while adding product into a basket", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
+const deleteProduct = async (productId) => {
+  try {
+    const connection = await mysql.createConnection(connectionConfig);
+    const SQL = "DELETE from products where ProductID=?;";
+    const [rows] = await connection.execute(SQL, [productId]);
+
+    // succ
+    console.log("delete product", rows);
+    if (rows && rows.affectedRows && rows.affectedRows > 0) {
+      return [undefined, rows];
     }
 
     return ["Error while adding product into a basket", undefined];
@@ -138,4 +211,6 @@ module.exports = {
   getProducts,
   getProductPrice,
   getProductsByID,
+  deleteProduct,
+  updateProductDetail,
 };

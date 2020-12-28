@@ -6,10 +6,28 @@ const {
   deleteOrder,
   productCountsFromOrder,
   getProductPrice,
+  getOrderDetails,
+  getAllOrderDetails,
 } = require("../db");
 const { getArrayFromBuffer } = require("../helper");
 
 const orderRoute = express.Router();
+
+// SELECT * FROM orderdetails o, orders o1 WHERE o.OrderID=o1.OrderID and LoginnerId = 45;
+
+orderRoute.get("/orderdetails/all/:user_id", async (req, res) => {
+  if (req.params && req.params.user_id) {
+    const [error, response] = await getAllOrderDetails(req.params.user_id);
+    if (error) {
+      return res.status(400).json({ error, status: false });
+    }
+    if (response) {
+      return res.json(response);
+    }
+    return res.status(400).json({ error: "Invalid request to GET /orders." });
+  }
+  return res.status(400).json({ error: "Invalid URL query parameter." });
+});
 
 orderRoute.get("/orders/:user_id", async (req, res) => {
   if (req.params && req.params.user_id) {
@@ -26,13 +44,16 @@ orderRoute.get("/orders/:user_id", async (req, res) => {
 });
 
 orderRoute.get("/orderdetails/:order_id", async (req, res) => {
-  if (req.params && req.params.order_id) {
-    const [error, response] = await getOrders(req.params.user_id);
+  const orderId = req.params.order_id;
+  if (req.params && orderId) {
+    console.log("order id ", orderId);
+    const [error, response] = await getOrderDetails(orderId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
     if (response) {
-      getArrayFromBuffer(response);
+      console.log("returning ..", response);
+      // getArrayFromBuffer(response);
       return res.json(response);
     }
     return res.status(400).json({ error: "Invalid request to GET /orders." });
@@ -64,29 +85,29 @@ orderRoute.get("/count/:order_id/:product_id", async (req, res) => {
 });
 
 orderRoute.post("/order", async (req, res) => {
-  if (req.body && req.body[0]) {
-    const userId = req.body[0].user_id;
-    const orderDate = req.body[0].order_date;
-    const status = req.body[0].status;
+  if (req.body && req.body) {
+    const userId = req.body.userId;
+    const orderDate = req.body.orderDate;
+    const status = req.body.status;
     const [error, response] = await createOrder(userId, orderDate, status);
-
+    console.log("reponse adding order", response.insertId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
-
     return res.json({
       status: true,
-      message: `order:${response.insertId} is added for user id:${userId}.`,
       user_id: userId,
+      orderId: response.insertId,
+      message: `order:${response.insertId} is added for user id:${userId}.`,
     });
   }
   return res.status(401).json({ error: "Invalid request body." });
 });
 
 orderRoute.post("/orderdetail", async (req, res) => {
-  if (req.body && req.body[0]) {
-    const orderId = req.body[0].order_id;
-    const productId = req.body[0].product_id;
+  if (req.body && req.body) {
+    const orderId = req.body.orderId;
+    const productId = req.body.productId;
     const [error, response] = await createOrderDetails(orderId, productId);
 
     if (error) {
@@ -103,22 +124,21 @@ orderRoute.post("/orderdetail", async (req, res) => {
   return res.status(401).json({ error: "Invalid request body." });
 });
 
-// delete product from the basket
 orderRoute.delete("/order/:order_id", async (req, res) => {
   const orderId = req.params.order_id;
-  if (req.params && orderId && req.body[0].user_id) {
-    const userId = req.body[0].user_id;
+  if (req.params && orderId && req.body && req.body.user_id) {
+    const userId = req.body.user_id;
+    console.log(`user id${userId} orderId${orderId}`);
 
-    const [error, response] = await deleteOrder(userId, orderId);
+    const [error, response] = await deleteOrder(orderId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
 
-    if (response.affectedRows > 0) {
-      return res.json({
-        status: true,
-        message: `order:${orderId} is deleted by SM:${userId}`,
-      });
+    console.log("response a bakak", response);
+    if (response && response.affectedRows > 0) {
+      console.log("returned");
+      return res.json({ status: true });
     }
 
     return res.json({ status: false, message: `Order could not deleted.` });

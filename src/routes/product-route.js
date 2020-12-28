@@ -1,7 +1,6 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs").promises;
 const {
   createProduct,
   createCategory,
@@ -9,6 +8,8 @@ const {
   getProducts,
   getProductsByID,
   getProductPrice,
+  updateProductDetail,
+  deleteProduct,
 } = require("../db");
 const { getArrayFromBuffer } = require("../helper");
 
@@ -29,7 +30,6 @@ const upload = multer({ storage });
 const productRouter = express.Router();
 
 productRouter.post("/add_cat", upload.single("catImage"), async (req, res) => {
-  console.log(req.body);
   const { catName, userTitle } = req.body;
   if (req.body && catName && userTitle) {
     if (userTitle != "E") {
@@ -68,18 +68,64 @@ productRouter.get("/get_cats", async (req, res) => {
 });
 
 productRouter.post(
-  "/create_product",
+  "/update_product",
   upload.single("productImage"),
   async (req, res) => {
-    const { title, categoryName, productName, unitPrice, status } = req.body;
+    const {
+      title,
+      categoryId,
+      productName,
+      unitPrice,
+      status,
+      productId,
+    } = req.body;
     if (req.body) {
-      if (title != "E") {
+      if (title != "P") {
         const error = "You must be an employee to add category";
         return res.status(401).json({ status: false, error });
       }
 
+      const [error, response] = await updateProductDetail(
+        productId,
+        productName,
+        imagePath,
+        categoryId,
+        unitPrice,
+        status
+      );
+
+      if (error) {
+        return res.status(401).json({ status: false, error });
+      }
+      if (response && response.affectedRows > 0) {
+        return res.json({ status: true });
+      }
+    }
+    return res.status(400).json({ error: "Invalid request body." });
+  }
+);
+
+productRouter.post(
+  "/create_product",
+  upload.single("productImage"),
+  async (req, res) => {
+    const { title, categoryId, productName, unitPrice, status } = req.body;
+    if (req.body) {
+      console.log({ title, categoryId, productName, unitPrice, status });
+      if (title != "E") {
+        const error = "You must be an employee to add category";
+        return res.status(401).json({ status: false, error });
+      }
+      console.log("paramters are ", {
+        title,
+        categoryId,
+        productName,
+        unitPrice,
+        status,
+      });
+
       const [error, response] = await createProduct(
-        categoryName,
+        categoryId,
         productName,
         unitPrice,
         imagePath,
@@ -95,7 +141,7 @@ productRouter.post(
           status: true,
           prod_id: response.rows.insertId,
           prod_name: productName,
-          category_name: categoryName,
+          category_name: response.categoryName,
           category_id: response.categoryID,
         });
       }
@@ -105,15 +151,21 @@ productRouter.post(
 );
 
 productRouter.get("/products", async (req, res) => {
-  const [error, response] = await getProducts();
+  console.log("queries", req.query);
+  let categoryId = -1;
+  if (req.query && req.query.categoryId) {
+    categoryId = req.query.categoryId;
+    console.log("req.query", req.query.categoryId);
+  }
+  const [error, response] = await getProducts(categoryId);
   if (error) {
     return res.status(401).json({ status: false, error });
   }
 
   if (response) {
-    getArrayFromBuffer(response);
     return res.json(response);
   }
+
   return res.status(400).json({ error: "Invalid request to /get_cats." });
 });
 
@@ -144,7 +196,27 @@ productRouter.get("/product/:id", async (req, res) => {
   }
 
   if (response) {
-    getArrayFromBuffer(response);
+    // getArrayFromBuffer(response);
+    console.log("wow product", response);
+    return res.json(response);
+  }
+  return res.status(400).json({ error: "Invalid request to /get_cats." });
+});
+
+productRouter.delete("/product", async (req, res) => {
+  console.log('router')
+  const productId = req.body.id;
+  if (!productId) {
+    return res.status(400).json({ error: "Invalid ID parameter." });
+  }
+  const [error, response] = await deleteProduct(productId);
+  if (error) {
+    return res.status(401).json({ status: false, error });
+  }
+
+  if (response) {
+    // getArrayFromBuffer(response);
+    console.log("wow deleted", response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid request to /get_cats." });
