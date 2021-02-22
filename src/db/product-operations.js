@@ -1,19 +1,10 @@
 const mysql = require("mysql2/promise");
-const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
 const { getProductRanks } = require("./ranks-operations");
-
-// Set the connection config object
-const connectionConfig = {
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-  multipleStatements: true,
-};
+const { connectionPool } = require("../config");
 
 const createCategory = async (categoryName, categoryImagePath, status) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     // const image = await fs.readFile(categoryImagePath, { encoding: "base64" });
     // const SQL = `INSERT INTO categories (CategoryName, CategoryImage, Active_Passive) VALUES(?, ?, ?)`;
@@ -36,7 +27,7 @@ const createCategory = async (categoryName, categoryImagePath, status) => {
 
 const getCategories = async () => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     const SQL = "SELECT * FROM categories";
     const [rows] = await connection.execute(SQL);
@@ -61,22 +52,35 @@ const getProductRate = async (productId) => {
   return 0;
 };
 
-const getProducts = async (categoryId) => {
+const sortProductByPrice = async (categoryId, sorting) => {
+  let sort = "";
+  let orderBy = "";
+  if (sorting == "AP") {
+    sort = "asc";
+    orderBy = "UnitPrice";
+  } else if (sorting == "DP") {
+    sort = "desc";
+    orderBy = "UnitPrice";
+  } else {
+    return ["Invalid sorting params", undefined];
+  }
+
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
     let SQL;
     let rows;
     if (categoryId >= 0) {
-      SQL = "SELECT * FROM products p WHERE p.CategoryID=? ";
+      SQL = `SELECT * FROM products p 
+             WHERE p.CategoryID=? 
+             order by ${orderBy} ${sort}`;
       [rows] = await connection.execute(SQL, [categoryId]);
     } else {
-      const SQL = "SELECT * FROM products";
+      SQL = `SELECT * FROM products p 
+             order by ${orderBy} ${sort}`;
       [rows] = await connection.execute(SQL);
     }
 
     if (rows) {
-      const test = await getProductRate(4);
-      console.log("test is", test);
       const promiseResult = rows.map(async (product) => ({
         ...product,
         rank: await getProductRate(product.ProductID),
@@ -90,9 +94,59 @@ const getProducts = async (categoryId) => {
   }
 };
 
+const getProducts = async (categoryId) => {
+  try {
+    let connection = await connectionPool.getConnection();
+    let SQL;
+    let rows;
+    if (categoryId >= 0) {
+      SQL = "SELECT * FROM products p WHERE p.CategoryID=? ";
+      [rows] = await connection.execute(SQL, [categoryId]);
+      console.log("getting products4");
+    } else {
+      const SQL = "SELECT * FROM products";
+      [rows] = await connection.execute(SQL);
+    }
+
+    if (rows) {
+      const promiseResult = rows.map(async (product) => ({
+        ...product,
+        rank: await getProductRate(product.ProductID),
+      }));
+      const resultArray = await Promise.all(promiseResult);
+      connection.release();
+      return [undefined, resultArray];
+    }
+    return ["Could not get categories", undefined];
+  } catch (error) {
+    connection.end();
+    return [error.message, undefined];
+  }
+};
+
+const getProductsByProductId = async (productId) => {
+  try {
+    const connection = await connectionPool.getConnection();
+    const SQL = "SELECT * FROM products WHERE ProductID=? ";
+    const [rows] = await connection.execute(SQL, [productId]);
+
+    if (rows) {
+      const promiseResult = rows.map(async (product) => ({
+        ...product,
+        rank: await getProductRate(product.ProductID),
+      }));
+      const resultArray = await Promise.all(promiseResult);
+      return [undefined, resultArray];
+    }
+    return ["Could not get products", undefined];
+  } catch (error) {
+    return [error.message, undefined];
+  }
+};
+
 const getProductsByID = async (productId) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     const SQL = "SELECT * FROM products WHERE ProductID=?";
     const [rows] = await connection.execute(SQL, [productId]);
@@ -115,7 +169,7 @@ const updateProductDetail = async (
   status
 ) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
     let SQL;
 
     SQL = `UPDATE products 
@@ -140,7 +194,7 @@ const updateProductDetail = async (
 };
 const getProductPrice = async (productId) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     const SQL = "SELECT UnitPrice FROM products WHERE ProductID=?";
     const [rows] = await connection.execute(SQL, [productId]);
@@ -162,11 +216,10 @@ const createProduct = async (
   status
 ) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
     var SQL = "SELECT C.CategoryName FROM categories C WHERE C.CategoryID  = ?";
     const [rowsId] = await connection.execute(SQL, [categoryId]);
     const categoryName = rowsId[0].CategoryName;
-    console.log("categoru ", categoryName);
     SQL =
       "INSERT INTO Products(ProductName, CategoryID, UnitPrice, ProductImage, Active_Passive) VALUES (?, ?, ?, ?, ?)";
     const [rows] = await connection.execute(SQL, [
@@ -190,12 +243,12 @@ const createProduct = async (
 
 const deleteProduct = async (productId) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
     const SQL = "DELETE from products where ProductID=?;";
     const [rows] = await connection.execute(SQL, [productId]);
 
+    console.log("rows delete", rows);
     // succ
-    console.log("delete product", rows);
     if (rows && rows.affectedRows && rows.affectedRows > 0) {
       return [undefined, rows];
     }
@@ -215,4 +268,6 @@ module.exports = {
   getProductsByID,
   deleteProduct,
   updateProductDetail,
+  getProductsByProductId,
+  sortProductByPrice,
 };

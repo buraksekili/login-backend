@@ -71,24 +71,19 @@ connectionRouter.post("/signup", async (req, res) => {
       userTitle = "C";
     }
     if (title == "S" || title == "P") {
-      console.log("New user is an employee");
       userTitle = "E";
     }
     // add into loginners
-    console.log("signup", { mail, password, phone, userTitle });
     const [error, response] = await signup(mail, password, phone, userTitle);
 
     if (error) {
       return res.status(400).json({ error, status: false });
     }
-    console.log("error");
 
-    console.log("Succesfully inserted into loginners table");
     if (response && response.affectedRows && response.affectedRows > 0) {
       const loginnerId = response.insertId;
       // if Customer signs up
       if (userTitle == "C") {
-        console.log("New user is a customer");
         const { customerAddress, creditCardNo, city, postalCode } = req.body;
 
         // add into customerloginners
@@ -103,7 +98,6 @@ connectionRouter.post("/signup", async (req, res) => {
         if (err) {
           return res.status(400).json({ error: err, status: false });
         }
-        console.log("Customer succesfully inserted into customer table.");
         return res.json({
           status: true,
           customer_id: loginnerId,

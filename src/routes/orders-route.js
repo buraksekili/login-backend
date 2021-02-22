@@ -7,7 +7,9 @@ const {
   productCountsFromOrder,
   getProductPrice,
   getOrderDetails,
+  changeOrderStatus,
   getAllOrderDetails,
+  makeGuestOrder,
 } = require("../db");
 const { getArrayFromBuffer } = require("../helper");
 
@@ -46,14 +48,11 @@ orderRoute.get("/orders/:user_id", async (req, res) => {
 orderRoute.get("/orderdetails/:order_id", async (req, res) => {
   const orderId = req.params.order_id;
   if (req.params && orderId) {
-    console.log("order id ", orderId);
     const [error, response] = await getOrderDetails(orderId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
     if (response) {
-      console.log("returning ..", response);
-      // getArrayFromBuffer(response);
       return res.json(response);
     }
     return res.status(400).json({ error: "Invalid request to GET /orders." });
@@ -83,6 +82,35 @@ orderRoute.get("/count/:order_id/:product_id", async (req, res) => {
   }
   return res.status(400).json({ error: "Invalid URL query parameter." });
 });
+orderRoute.post("/guestOrder", async (req, res) => {
+  if (req.body && req.body) {
+    const {
+      productId,
+      guestMail,
+      productName,
+      unitPrice,
+      productImage,
+      status,
+      orderDate,
+      deliveryAddress,
+    } = req.body;
+    const [error, response] = await makeGuestOrder(
+      productId,
+      guestMail,
+      productName,
+      unitPrice,
+      productImage,
+      status,
+      orderDate,
+      deliveryAddress
+    );
+    if (error) {
+      return res.status(400).json({ error, status: false });
+    }
+    return res.json({ status: true });
+  }
+  return res.status(401).json({ error: "Invalid request body." });
+});
 
 orderRoute.post("/order", async (req, res) => {
   if (req.body && req.body) {
@@ -90,7 +118,6 @@ orderRoute.post("/order", async (req, res) => {
     const orderDate = req.body.orderDate;
     const status = req.body.status;
     const [error, response] = await createOrder(userId, orderDate, status);
-    console.log("reponse adding order", response.insertId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
@@ -104,8 +131,29 @@ orderRoute.post("/order", async (req, res) => {
   return res.status(401).json({ error: "Invalid request body." });
 });
 
+orderRoute.post("/changeOrder", async (req, res) => {
+  if (req.body && req.body.orderId && req.body.loginnerId) {
+    const { orderId, loginnerId, status } = req.body;
+    const [error, response] = await changeOrderStatus(
+      orderId,
+      loginnerId,
+      status
+    );
+    if (error) {
+      return res.status(400).json({ error, status: false });
+    }
+
+    if (response && response.affectedRows && response.affectedRows > 0) {
+      return res.json({ status: true });
+    }
+
+    return res.status(401).json({ error: "Couln't update", status: false });
+  }
+  return res.status(401).json({ error: "Invalid body" });
+});
+
 orderRoute.post("/orderdetail", async (req, res) => {
-  if (req.body && req.body) {
+  if (req.body) {
     const orderId = req.body.orderId;
     const productId = req.body.productId;
     const [error, response] = await createOrderDetails(orderId, productId);
@@ -128,16 +176,13 @@ orderRoute.delete("/order/:order_id", async (req, res) => {
   const orderId = req.params.order_id;
   if (req.params && orderId && req.body && req.body.user_id) {
     const userId = req.body.user_id;
-    console.log(`user id${userId} orderId${orderId}`);
 
     const [error, response] = await deleteOrder(orderId);
     if (error) {
       return res.status(400).json({ error, status: false });
     }
 
-    console.log("response a bakak", response);
     if (response && response.affectedRows > 0) {
-      console.log("returned");
       return res.json({ status: true });
     }
 

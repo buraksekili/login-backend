@@ -1,18 +1,9 @@
 const mysql = require("mysql2/promise");
-const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
 const { hashPassword } = require("../helper");
-
-// Set the connection config object
-const connectionConfig = {
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-  multipleStatements: true,
-};
+const { connectionPool } = require("../config");
 
 const getAllUsers = async () => {
-  const connection = await mysql.createConnection(connectionConfig);
+  const connection = await connectionPool.getConnection();
   const SQL = "SELECT ID, LoginnerMail, Title FROM loginners";
   try {
     const [rows] = await connection.execute(SQL, []);
@@ -26,7 +17,7 @@ const getAllUsers = async () => {
 };
 
 const updateProfile = async (userId, newPassword) => {
-  const connection = await mysql.createConnection(connectionConfig);
+  const connection = await connectionPool.getConnection();
   const [error, hashedPassword] = await hashPassword(newPassword);
   if (error) {
     return ["Error while hashing a password", undefined];
@@ -45,7 +36,7 @@ const updateProfile = async (userId, newPassword) => {
 };
 
 const passwordChange = async (userId, newPassword) => {
-  const connection = await mysql.createConnection(connectionConfig);
+  const connection = await connectionPool.getConnection();
 
   const SQL = "UPDATE loginners SET LoginnerPassword = ? WHERE user_id = ?";
   try {
@@ -61,7 +52,7 @@ const passwordChange = async (userId, newPassword) => {
 
 // first, check user's role then allow deletion.
 const deleteUser = async (mail) => {
-  const connection = await mysql.createConnection(connectionConfig);
+  const connection = await connectionPool.getConnection();
   const SQL = "DELETE FROM user WHERE user_email = ?";
   try {
     await connection.execute(SQL, [mail]);
@@ -72,7 +63,7 @@ const deleteUser = async (mail) => {
 };
 
 const getUserIdFromMail = async (mail) => {
-  const connection = await mysql.createConnection(connectionConfig);
+  const connection = await connectionPool.getConnection();
   const SQL = "SELECT * FROM user WHERE user_email = ?";
   try {
     const [rows] = await connection.execute(SQL, [mail]);

@@ -1,20 +1,11 @@
 const mysql = require("mysql2/promise");
-const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = require("../config");
 const { hashPassword } = require("../helper");
 const bcrypt = require("bcrypt");
-
-// Set the connection config object
-const connectionConfig = {
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-  multipleStatements: true,
-};
+const { connectionPool } = require("../config");
 
 const getUserById = async (userId) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
     let SQL = `SELECT * FROM loginners WHERE LoginnerID=?`;
     let [rows] = await connection.execute(SQL, [userId]);
 
@@ -37,13 +28,14 @@ const login = async (mail, password) => {
       return ["Password field is empty for /login body.", undefined];
     }
 
-    const connection = await mysql.createConnection(connectionConfig);
-    let SQL = `SELECT * FROM loginners WHERE LoginnerMail = ?`;
+    const connection = await connectionPool.getConnection();
+    let SQL = `SELECT * FROM loginners WHERE LoginnerMail=?`;
     let [rows] = await connection.execute(SQL, [mail]);
 
     if (!rows) {
       return ["The result is empty. Try again", undefined];
     }
+    console.log("rows", rows);
     if (rows.length == 0) {
       return [`Invalid credentials`, undefined];
     }
@@ -77,7 +69,7 @@ const signup = async (mail, password, phone, title) => {
       return ["Error while hashing a password", undefined];
     }
 
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     // check if the email exists or not.
     let SQL = "SELECT * FROM loginners WHERE LoginnerMail = ?";
@@ -120,7 +112,7 @@ const addCustomer = async (
   postalCode
 ) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     let SQL = "INSERT INTO CustomerLoginners VALUES(?, ?, ?, ?, ?, ?)";
     let [rows] = await connection.execute(SQL, [
@@ -151,7 +143,7 @@ const addEmployee = async (
   title
 ) => {
   try {
-    const connection = await mysql.createConnection(connectionConfig);
+    const connection = await connectionPool.getConnection();
 
     // check if the email exists or not.
     let SQL = "INSERT INTO employeeloginners VALUES(?, ?, ?, ?, ?, ?)";

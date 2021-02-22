@@ -10,6 +10,8 @@ const {
   getProductPrice,
   updateProductDetail,
   deleteProduct,
+  getProductsByProductId,
+  sortProductByPrice,
 } = require("../db");
 const { getArrayFromBuffer } = require("../helper");
 
@@ -22,7 +24,6 @@ const storage = multer.diskStorage({
     var catImageName = Date.now() + file.originalname;
     cb(null, catImageName);
     imagePath = path.join(__dirname, "../../uploads", catImageName);
-    console.log("filepath is ", imagePath);
   },
 });
 
@@ -111,18 +112,10 @@ productRouter.post(
   async (req, res) => {
     const { title, categoryId, productName, unitPrice, status } = req.body;
     if (req.body) {
-      console.log({ title, categoryId, productName, unitPrice, status });
       if (title != "E") {
         const error = "You must be an employee to add category";
         return res.status(401).json({ status: false, error });
       }
-      console.log("paramters are ", {
-        title,
-        categoryId,
-        productName,
-        unitPrice,
-        status,
-      });
 
       const [error, response] = await createProduct(
         categoryId,
@@ -150,11 +143,27 @@ productRouter.post(
   }
 );
 
+productRouter.get("/sortProductPrice", async (req, res) => {
+  if (req.query && req.query.categoryId && req.query.sorting) {
+    const { categoryId, sorting } = req.query;
+    if (!categoryId || !sorting) {
+      return res.status(400).json({ error: "Invalid request queries." });
+    }
+    const [error, response] = await sortProductByPrice(categoryId, sorting);
+    if (error) {
+      return res.status(401).json({ status: false, error });
+    }
+    if (response) {
+      return res.json(response);
+    }
+  }
+  return res.status(400).json({ error: "Invalid request." });
+});
+
 productRouter.get("/products", async (req, res) => {
   let categoryId = -1;
   if (req.query && req.query.categoryId) {
     categoryId = req.query.categoryId;
-    console.log("req.query", req.query.categoryId);
   }
   const [error, response] = await getProducts(categoryId);
   if (error) {
@@ -166,6 +175,21 @@ productRouter.get("/products", async (req, res) => {
   }
 
   return res.status(400).json({ error: "Invalid request to /get_cats." });
+});
+
+productRouter.get("/productsBy/:prod_id", async (req, res) => {
+  if (req.params && req.params.prod_id) {
+    const prodId = req.params.prod_id;
+    const [error, response] = await getProductsByProductId(prodId);
+    if (error) {
+      return res.status(401).json({ status: false, error });
+    }
+
+    if (response) {
+      return res.json(response);
+    }
+  }
+  return res.status(400).json({ error: "Invalid request params /productsBy." });
 });
 
 productRouter.get("/price/:product_id", async (req, res) => {
@@ -195,15 +219,12 @@ productRouter.get("/product/:id", async (req, res) => {
   }
 
   if (response) {
-    // getArrayFromBuffer(response);
-    console.log("wow product", response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid request to /get_cats." });
 });
 
 productRouter.delete("/product", async (req, res) => {
-  console.log("router");
   const productId = req.body.id;
   if (!productId) {
     return res.status(400).json({ error: "Invalid ID parameter." });
@@ -214,8 +235,6 @@ productRouter.delete("/product", async (req, res) => {
   }
 
   if (response) {
-    // getArrayFromBuffer(response);
-    console.log("wow deleted", response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid request to /get_cats." });

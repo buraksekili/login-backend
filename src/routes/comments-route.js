@@ -3,7 +3,6 @@ const { addComment, getComments } = require("../db");
 const commentsRouter = express.Router();
 
 commentsRouter.post("/comment/:productId", async (req, res) => {
-  console.log(req.body.userId, req.params.productId, req.body.comment);
   if (req.body && req.body) {
     const [error, response, updated] = await addComment(
       req.body.userId,
@@ -14,10 +13,8 @@ commentsRouter.post("/comment/:productId", async (req, res) => {
     if (error) {
       return res.status(400).json({ error, status: false });
     }
-    console.log("comment res", response);
 
     if (response && response.affectedRows > 0) {
-      console.log("comment: ", response);
       return res.json({
         status: true,
         updated,
@@ -35,9 +32,7 @@ commentsRouter.get("/comments/:productId", async (req, res) => {
     if (error) {
       return res.status(400).json({ error, status: false });
     }
-    console.log("comments res", response);
     if (response && response.length > 0) {
-      console.log("comment: ", response);
       return res.json(response);
     }
     return res.json(response);

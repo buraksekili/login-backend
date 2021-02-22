@@ -33,7 +33,6 @@ basketRouter.get("/basket_details/:user_id", async (req, res) => {
     if (error) {
       return res.status(400).json({ error, status: false });
     }
-    console.log("basket_details", response);
     return res.json(response);
   }
   return res.status(400).json({ error: "Invalid URL query parameter." });
